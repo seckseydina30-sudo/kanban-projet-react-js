@@ -4,11 +4,14 @@
   font-family: 'Poppins', Arial, Helvetica, sans-serif
 }
 
-body{
-  background: url('coucher2.avif') ;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+.background-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
 }
 .login-wrapper {
  
