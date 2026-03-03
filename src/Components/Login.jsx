@@ -1,24 +1,16 @@
-import Password from "antd/es/input/Password";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Col,
-  Row,
-  Button,
-  Form,
-  FormGroup,
-  Label,
-  Input,
-  FormText,
-} from "reactstrap";
+import { FormGroup, Button, Input } from "reactstrap";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { storeUser } from "../helpers";
+import { storeUser } from "../auth";
 
 const initialUser = { password: "", identifier: "" };
+
 const Login = () => {
   const [user, setUser] = useState(initialUser);
   const navigate = useNavigate();
+
   const handleChange = ({ target }) => {
     const { name, value } = target;
     setUser((currentUser) => ({
@@ -34,21 +26,17 @@ const Login = () => {
         const { data } = await axios.post(url, user);
         if (data.jwt) {
           storeUser(data);
-          toast.success("Logged in Successfully", {
-            hideProgressBar: true,
-          });
+          toast.success("Logged in Successfully", { hideProgressBar: true });
           setUser(initialUser);
-
           navigate("/");
         }
       }
     } catch (error) {
-      toast.error(error.message, {
-        hideProgressBar: true,
-      });
+      toast.error(error.message, { hideProgressBar: true });
     }
   };
-    return (
+
+  return (
     <div className="login-wrapper">
       <div className="login-box">
         <h2>Login</h2>
@@ -86,5 +74,3 @@ const Login = () => {
 };
 
 export default Login;
-
-
