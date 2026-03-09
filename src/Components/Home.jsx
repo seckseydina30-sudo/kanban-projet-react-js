@@ -1,6 +1,6 @@
 import React from "react";
 import CustomNav from "./CustomNav";
-import { userData } from "../helpers";
+import { userData } from "../auth.js";
 import KanbanBoard from "./KanbanBoard";
 
 const Home = () => {
