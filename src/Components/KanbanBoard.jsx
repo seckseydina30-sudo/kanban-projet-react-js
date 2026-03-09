@@ -5,8 +5,6 @@ import { getToken } from "../auth";
 
 const API = "http://localhost:1337/api/taches";
 
-
-
 // ─── Strapi helpers ───────────────────────────────────────────────────────────
 
 function authHeaders() {
@@ -17,21 +15,21 @@ function authHeaders() {
   };
 }
 
-async function apiUpdate(id, data) {
-  const res = await fetch(`${API}/${id}`, {
+async function apiUpdate(documentId, data) {
+  const res = await fetch(`${API}/${documentId}`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ data }),
   });
-  if (!res.ok) throw new Error(`PUT ${id} failed: ${res.status}`);
+  if (!res.ok) throw new Error(`PUT ${documentId} failed: ${res.status}`);
 }
 
-async function apiDelete(id) {
-  const res = await fetch(`${API}/${id}`, {
+async function apiDelete(documentId) {
+  const res = await fetch(`${API}/${documentId}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error(`DELETE ${id} failed: ${res.status}`);
+  if (!res.ok) throw new Error(`DELETE ${documentId} failed: ${res.status}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,37 +44,35 @@ export default function KanbanBoard() {
   const [newDescription, setNewDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-useEffect(() => {
-  fetch(API)
-    .then((r) => r.json())
-    .then((json) => {
-      let tasks = json.data.map((item) => ({
-        id: item.id,
-        ...item.attributes,
-      }));
+  useEffect(() => {
+    fetch(API, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((json) => {
+        // Strapi v5: response is flat, no "attributes" wrapper
+        let tasks = json.data.map(({ id, documentId, ...rest }) => ({
+          id,
+          documentId,
+          ...rest,
+        }));
 
-      // Trier avant de répartir
-      tasks = tasks.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        tasks = tasks.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-      setIncompleted(tasks.filter((t) => !t.completed && !t.isBacklog));
-      setCompleted(tasks.filter((t) => t.completed));
-      setBacklog(tasks.filter((t) => !t.completed && t.isBacklog));
-    })
-    .catch((err) => console.error("Error connecting to Strapi:", err));
-}, []);
-
-
+        setIncompleted(tasks.filter((t) => !t.completed && !t.isBacklog));
+        setCompleted(tasks.filter((t) => t.completed));
+        setBacklog(tasks.filter((t) => !t.completed && t.isBacklog));
+      })
+      .catch((err) => console.error("Error connecting to Strapi:", err));
+  }, []);
 
   // ─── Delete ────────────────────────────────────────────────────────────────
 
-  const handleDelete = async (id) => {
-    // Optimistically remove from UI immediately
-    setIncompleted((prev) => prev.filter((t) => t.id !== id));
-    setCompleted((prev) => prev.filter((t) => t.id !== id));
-    setBacklog((prev) => prev.filter((t) => t.id !== id));
+  const handleDelete = async (documentId) => {
+    setIncompleted((prev) => prev.filter((t) => t.documentId !== documentId));
+    setCompleted((prev) => prev.filter((t) => t.documentId !== documentId));
+    setBacklog((prev) => prev.filter((t) => t.documentId !== documentId));
 
     try {
-      await apiDelete(id);
+      await apiDelete(documentId);
     } catch (err) {
       console.error("Failed to delete task from Strapi:", err);
     }
@@ -94,35 +90,36 @@ useEffect(() => {
         description: newDescription.trim(),
         completed: false,
         isBacklog: false,
+        position: incompleted.length, // Best practice to include this
       },
     };
 
     try {
       const res = await fetch(API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("POST failed");
+
+      if (!res.ok) {
+        // THIS PART IS KEY: Get the error details from Strapi
+        const errorData = await res.json();
+        console.error("Strapi Error Details:", errorData.error);
+        throw new Error(`POST failed: ${errorData.error.message}`);
+      }
+
       const json = await res.json();
-      const newTask = { id: json.data.id, ...json.data.attributes };
+      const { id, documentId, ...rest } = json.data;
+      const newTask = { id, documentId, ...rest };
       setIncompleted((prev) => [...prev, newTask]);
-    } catch (err) {
-      console.error("Error creating task:", err);
-      setIncompleted((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          title: newTitle.trim(),
-          description: newDescription.trim(),
-          completed: false,
-          isBacklog: false,
-        },
-      ]);
-    } finally {
+
+      // Reset form
       setNewTitle("");
       setNewDescription("");
       setShowModal(false);
+    } catch (err) {
+      console.error("Error creating task:", err);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -135,120 +132,126 @@ useEffect(() => {
     if (e.key === "Escape") setShowModal(false);
   };
 
-  // ─── Drag & drop (with Strapi persistence) ────────────────────────────────
-const handleDragEnd = async (result) => {
-  const { destination, source, draggableId } = result;
-  if (!destination) return;
+  // ─── Drag & drop ──────────────────────────────────────────────────────────
 
-  if (
-    source.droppableId === destination.droppableId &&
-    source.index === destination.index
-  ) {
-    return;
-  }
+  const handleDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
 
-  const lists = {
-    "1": { list: incompleted, set: setIncompleted },
-    "2": { list: completed, set: setCompleted },
-    "3": { list: backlog, set: setBacklog },
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
+
+    const lists = {
+      1: { list: incompleted, set: setIncompleted },
+      2: { list: completed, set: setCompleted },
+      3: { list: backlog, set: setBacklog },
+    };
+
+    const sourceList = lists[source.droppableId].list;
+    const setSourceList = lists[source.droppableId].set;
+
+    const destList = lists[destination.droppableId].list;
+    const setDestList = lists[destination.droppableId].set;
+
+    const newSourceList = [...sourceList];
+    const taskIndex = newSourceList.findIndex(
+      (t) => t.id.toString() === draggableId,
+    );
+    const [movedTask] = newSourceList.splice(taskIndex, 1);
+
+    if (destination.droppableId === "2") {
+      movedTask.completed = true;
+      movedTask.isBacklog = false;
+    } else if (destination.droppableId === "3") {
+      movedTask.completed = false;
+      movedTask.isBacklog = true;
+    } else {
+      movedTask.completed = false;
+      movedTask.isBacklog = false;
+    }
+
+    const newDestList = [...destList];
+    newDestList.splice(destination.index, 0, movedTask);
+
+    const updatePositions = (list) =>
+      list.map((t, index) => ({ ...t, position: index }));
+
+    const updatedSource = updatePositions(newSourceList);
+    const updatedDest = updatePositions(newDestList);
+
+    setSourceList(updatedSource);
+    setDestList(updatedDest);
+
+    try {
+      const toSave =
+        source.droppableId === destination.droppableId
+          ? updatedDest
+          : [...updatedSource, ...updatedDest];
+
+      await Promise.all(
+        toSave.map((t) =>
+          apiUpdate(t.documentId, {
+            completed: t.completed,
+            isBacklog: t.isBacklog,
+            position: t.position,
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to update task positions:", err);
+    }
   };
 
-  const sourceList = lists[source.droppableId].list;
-  const setSourceList = lists[source.droppableId].set;
+  // ─── Styles ───────────────────────────────────────────────────────────────
 
-  const destList = lists[destination.droppableId].list;
-  const setDestList = lists[destination.droppableId].set;
+  const modalOverlayStyle = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    backdropFilter: "blur(4px)",
+    zIndex: 1000,
+  };
 
-  // Clone
-  const newSourceList = [...sourceList];
-  const taskIndex = newSourceList.findIndex(
-    (t) => t.id.toString() === draggableId
-  );
-  const [movedTask] = newSourceList.splice(taskIndex, 1);
+  const modalStyle = {
+    backgroundColor: "#4e345a",
+    padding: "26px",
+    borderRadius: "14px",
+    width: "380px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
+    border: "1px solid #030405",
+  };
 
-  // Update status
-  if (destination.droppableId === "2") {
-    movedTask.completed = true;
-    movedTask.isBacklog = false;
-  } else if (destination.droppableId === "3") {
-    movedTask.completed = false;
-    movedTask.isBacklog = true;
-  } else {
-    movedTask.completed = false;
-    movedTask.isBacklog = false;
-  }
+  const labelStyle = {
+    color: "#e0e1dd",
+    fontSize: "14px",
+    fontWeight: "600",
+    marginBottom: "6px",
+    display: "block",
+  };
 
-  // Insert into destination
-  const newDestList = [...destList];
-  newDestList.splice(destination.index, 0, movedTask);
-
-  // Recalculate positions
-  const updatePositions = (list) =>
-    list.map((t, index) => ({ ...t, position: index }));
-
-  // Update UI
-  setSourceList(updatePositions(newSourceList));
-  setDestList(updatePositions(newDestList));
-
-  // Persist to Strapi
-  try {
-    await apiUpdate(movedTask.id, {
-      completed: movedTask.completed,
-      isBacklog: movedTask.isBacklog,
-      position: destination.index,
-    });
-  } catch (err) {
-    console.error("Failed to update task:", err);
-  }
-};
-
-
-
-        // Styles du modal
-const modalOverlayStyle = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  backgroundColor: "rgba(0, 0, 0, 0.55)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  backdropFilter: "blur(4px)",
-  zIndex: 1000,
-};
-
-const modalStyle = {
-  backgroundColor: "#4e345a",
-  padding: "26px",
-  borderRadius: "14px",
-  width: "380px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "18px",
-  boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
-  border: "1px solid #030405",
-};
-
-const labelStyle = {
-  color: "#e0e1dd",
-  fontSize: "14px",
-  fontWeight: "600",
-  marginBottom: "6px",
-  display: "block",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: "8px",
-  border: "1px solid #300e30",
-  backgroundColor: "#15091a",
-  color: "#e0e1dd",
-  fontSize: "14px",
-  outline: "none",
-};
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: "1px solid #300e30",
+    backgroundColor: "#15091a",
+    color: "#e0e1dd",
+    fontSize: "14px",
+    outline: "none",
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -300,7 +303,6 @@ const inputStyle = {
         </button>
       </div>
 
-      {/* ── Modal ── */}
       {showModal && (
         <div style={modalOverlayStyle} onClick={() => setShowModal(false)}>
           <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
