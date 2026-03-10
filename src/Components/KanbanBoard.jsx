@@ -130,6 +130,7 @@ export default function KanbanBoard() {
       handleAddTask();
     }
     if (e.key === "Escape") setShowModal(false);
+
   };
 
   // ─── Drag & drop ──────────────────────────────────────────────────────────
@@ -284,7 +285,17 @@ export default function KanbanBoard() {
         />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 24 }}>
+      <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: 24,
+            flexWrap: "wrap",       
+            padding: "0 12px",
+            fontSize : "10px",
+          }}
+        >
+
         <button
           onClick={() => setShowModal(true)}
           style={{
@@ -302,6 +313,8 @@ export default function KanbanBoard() {
           + Add A Task
         </button>
       </div>
+     
+
 
       {showModal && (
         <div style={modalOverlayStyle} onClick={() => setShowModal(false)}>
