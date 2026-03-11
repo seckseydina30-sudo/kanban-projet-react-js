@@ -17,8 +17,8 @@ function App() {
       <Container>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Protector Component={Home} />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Login />} />
+            <Route path="/home" element={<Protector Component={Home} />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/registration" element={<Registration />} />
           </Routes>

@@ -1,16 +1,11 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { Navigate } from "react-router-dom";
 import { userData } from "./auth";
 
 export const Protector = ({ Component }) => {
-  const navigate = useNavigate();
   const { jwt } = userData();
 
-  useEffect(() => {
-    if (!jwt) {
-      navigate("/login");
-    }
-  }, [navigate, jwt]);
+  if (!jwt) return <Navigate to="/login" replace />;
 
   return <Component />;
 };

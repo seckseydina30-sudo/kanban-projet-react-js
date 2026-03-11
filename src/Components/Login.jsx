@@ -30,7 +30,7 @@ const Login = () => {
           storeUser(data);
           toast.success("Logged in Successfully", { hideProgressBar: true });
           setUser(initialUser);
-          navigate("/");
+          navigate("/Home");
         }
       }
     } catch (error) {
@@ -42,11 +42,10 @@ const Login = () => {
     <div className="login-wrapper">
       {/* Bouton Dark/Light */}
       <div className="theme-toggle-wrapper">
-  <Button onClick={toggleTheme} className="btn-secondary">
-    {theme === "light" ? "Mode sombre" : "Mode clair"}
-  </Button>
-</div>
-
+        <Button onClick={toggleTheme} className="btn-secondary">
+          {theme === "light" ? "Mode sombre" : "Mode clair"}
+        </Button>
+      </div>
 
       <div className="login-box">
         <h2>Login</h2>

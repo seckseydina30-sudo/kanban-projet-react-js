@@ -32,7 +32,7 @@ export default function Task({ task, index, onDelete }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleColorChange = () => {
-    setMyColor((prev) => (prev === "#ebb5be" ? null : "#ebb5be"));
+    setMyColor((prev) => (prev === "#ef1b3e" ? null : "#f21c3f"));
   };
 
   const handleDeleteClick = (e) => {
