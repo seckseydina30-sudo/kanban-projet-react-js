@@ -9,9 +9,11 @@ import Logout from "./Components/Logout";
 import Registration from "./Components/Registration";
 import { Protector } from "./helpers";
 
+import { ThemeProvider } from "./ThemeContext"; // <-- AJOUT
+
 function App() {
   return (
-    <>
+    <ThemeProvider>
       <Container>
         <BrowserRouter>
           <Routes>
@@ -23,7 +25,7 @@ function App() {
           <ToastContainer />
         </BrowserRouter>
       </Container>
-    </>
+    </ThemeProvider>
   );
 }
 

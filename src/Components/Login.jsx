@@ -4,12 +4,14 @@ import { FormGroup, Button, Input } from "reactstrap";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { storeUser } from "../auth";
+import { useTheme } from "../ThemeContext"; // <-- AJOUT
 
 const initialUser = { password: "", identifier: "" };
 
 const Login = () => {
   const [user, setUser] = useState(initialUser);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme(); // <-- AJOUT
 
   const handleChange = ({ target }) => {
     const { name, value } = target;
@@ -38,6 +40,14 @@ const Login = () => {
 
   return (
     <div className="login-wrapper">
+      {/* Bouton Dark/Light */}
+      <div className="theme-toggle-wrapper">
+  <Button onClick={toggleTheme} className="btn-secondary">
+    {theme === "light" ? "Mode sombre" : "Mode clair"}
+  </Button>
+</div>
+
+
       <div className="login-box">
         <h2>Login</h2>
 

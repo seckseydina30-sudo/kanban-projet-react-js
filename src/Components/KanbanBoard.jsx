@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { DragDropContext } from "@hello-pangea/dnd";
 import Column from "./Column";
 import { getToken } from "../auth";
+import { useTheme } from "../ThemeContext";
+
+
+
+
 
 const API = "http://localhost:1337/api/taches";
 
@@ -35,6 +40,7 @@ async function apiDelete(documentId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function KanbanBoard() {
+  const { theme, toggleTheme } = useTheme();
   const [incompleted, setIncompleted] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [backlog, setBacklog] = useState([]);
@@ -133,6 +139,8 @@ export default function KanbanBoard() {
 
   };
 
+
+  
   // ─── Drag & drop ──────────────────────────────────────────────────────────
 
   const handleDragEnd = async (result) => {
@@ -208,57 +216,89 @@ export default function KanbanBoard() {
   };
 
   // ─── Styles ───────────────────────────────────────────────────────────────
+  
 
-  const modalOverlayStyle = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "rgba(0, 0, 0, 0.55)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backdropFilter: "blur(4px)",
-    zIndex: 1000,
-  };
+ const modalOverlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100vh",
+  backgroundColor: theme === "dark" ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.55)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backdropFilter: "blur(4px)",
+  zIndex: 1000,
+};
 
-  const modalStyle = {
-    backgroundColor: "#4e345a",
-    padding: "26px",
-    borderRadius: "14px",
-    width: "380px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
-    border: "1px solid #030405",
-  };
+ const modalStyle = {
+  backgroundColor: theme === "dark" ? "#1a1a1a" : "#4e345a",
+  padding: "26px",
+  borderRadius: "14px",
+  width: "380px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "18px",
+  boxShadow: "0 8px 25px rgba(0,0,0,0.35)",
+  border: theme === "dark" ? "1px solid #333" : "1px solid #030405",
+  color: theme === "dark" ? "#f1f1f1" : "#e0e1dd",
+};
 
-  const labelStyle = {
-    color: "#e0e1dd",
-    fontSize: "14px",
-    fontWeight: "600",
-    marginBottom: "6px",
-    display: "block",
-  };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    border: "1px solid #300e30",
-    backgroundColor: "#15091a",
-    color: "#e0e1dd",
-    fontSize: "14px",
-    outline: "none",
-  };
+const labelStyle = {
+  color: theme === "dark" ? "#f1f1f1" : "#e0e1dd",
+  fontSize: "14px",
+  fontWeight: "600",
+  marginBottom: "6px",
+  display: "block",
+};
+
+ const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border: theme === "dark" ? "1px solid #555" : "1px solid #300e30",
+  backgroundColor: theme === "dark" ? "#0f0f0f" : "#15091a",
+  color: theme === "dark" ? "#f1f1f1" : "#e0e1dd",
+  fontSize: "14px",
+  outline: "none",
+};
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    
     <DragDropContext onDragEnd={handleDragEnd}>
-      <h2 style={{ textAlign: "center", color: "#e0e1dd" }}>PROGRESS BOARD</h2>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        marginBottom: "20px",
+        paddingRight: "20px",
+      }}
+    >
+      <button
+        onClick={toggleTheme}
+        style={{
+          padding: "8px 16px",
+          borderRadius: "8px",
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "0.3s ease",
+          color: "white",
+          background:
+            theme === "dark"
+              ? "linear-gradient(135deg, #636064, #000000)"
+              : "linear-gradient(135deg, #ff4d6d, #d90429)",
+        }}
+      >
+        {theme === "light" ? "Mode sombre" : "Mode clair"}
+      </button>
+    </div>
+
+    <h2 style={{ textAlign: "center", color: "#e0e1dd" }}>PROGRESS BOARD</h2>
 
       <div
         style={{
@@ -299,15 +339,22 @@ export default function KanbanBoard() {
         <button
           onClick={() => setShowModal(true)}
           style={{
-            padding: "10px 24px",
+             padding: "10px 24px",
             borderRadius: "8px",
             border: "none",
-            backgroundColor: "#53077b",
-            color: "#e0e1dd",
+            cursor: "pointer",
             fontSize: "15px",
             fontWeight: "600",
-            cursor: "pointer",
             letterSpacing: "0.5px",
+            transition: "0.3s ease",
+
+    
+          background: theme === "dark"
+            ? "linear-gradient(135deg, #030202, #716b71)"   // violet foncé
+            : "linear-gradient(135deg, #6a0dad, #3b0a57)", // rouge clair
+
+          color: "white",
+            
           }}
         >
           + Add A Task
@@ -358,11 +405,14 @@ export default function KanbanBoard() {
                 style={{
                   padding: "8px 18px",
                   borderRadius: "8px",
-                  border: "1px solid #b984c8",
-                  backgroundColor: "transparent",
-                  color: "#a8b2c1",
                   cursor: "pointer",
                   fontSize: "14px",
+                  transition: "0.3s ease",
+
+                 
+                  backgroundColor: "transparent",
+                  border: theme === "dark" ? "1px solid #555" : "1px solid #b984c8",
+                  color: theme === "dark" ? "#cccccc" : "#a8b2c1",
                 }}
               >
                 Cancel
@@ -371,15 +421,30 @@ export default function KanbanBoard() {
                 onClick={handleAddTask}
                 disabled={!newTitle.trim() || isSubmitting}
                 style={{
-                  padding: "8px 18px",
-                  borderRadius: "6px",
-                  border: "none",
-                  backgroundColor: newTitle.trim() ? "#53077b" : "#2a3a4a",
-                  color: newTitle.trim() ? "#ffffff" : "#5a6a7a",
-                  cursor: newTitle.trim() ? "pointer" : "not-allowed",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                }}
+                          padding: "8px 18px",
+                          borderRadius: "6px",
+                          border: "none",
+                          fontSize: "14px",
+                          fontWeight: "600",
+                          transition: "0.3s ease",
+
+                          
+                          background: newTitle.trim()
+                              ? theme === "dark"
+                                ? "linear-gradient(135deg, #6a0dad, #3b0a57)"   // actif + dark
+                                : "linear-gradient(135deg, #ff4d6d, #d90429)"   // actif + light
+                              : theme === "dark"
+                                ? "#2a2a2a"                                     // disabled + dark
+                                : "#2a3a4a",                                    // disabled + light
+
+                            color: newTitle.trim()
+                              ? "#ffffff"
+                              : theme === "dark"
+                                ? "#777777"
+                                : "#5a6a7a",
+
+                          cursor: newTitle.trim() ? "pointer" : "not-allowed",
+             }}
               >
                 {isSubmitting ? "Adding..." : "Add Task"}
               </button>
@@ -387,6 +452,7 @@ export default function KanbanBoard() {
           </div>
         </div>
       )}
+      
     </DragDropContext>
   );
 }
